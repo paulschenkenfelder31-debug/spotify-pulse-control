@@ -127,12 +127,20 @@ function coverColors(index) {
   return colors[index % colors.length];
 }
 
-function toast(message) {
+function toast(message, tone = 'info') {
   const node = $('#toast');
   node.textContent = message;
+  node.dataset.tone = tone;
   node.classList.add('show');
   clearTimeout(toast.timer);
   toast.timer = setTimeout(() => node.classList.remove('show'), 2300);
+}
+
+function friendlyError(error, fallback = 'Something went wrong. Please try again.') {
+  const message = String(error?.message || error || '');
+  if (/unexpected token|failed to fetch|networkerror/i.test(message)) return 'Could not reach Spotify right now. Check your internet connection and try again.';
+  if (/redirect|client id|invalid client/i.test(message)) return 'Spotify could not connect. Check the Client ID and the exact Redirect URL.';
+  return message || fallback;
 }
 
 function setIcon(button, name) {
@@ -257,6 +265,8 @@ function updateTrackUI(item, playback = {}) {
   const imageUrl = item.album?.images?.[0]?.url;
   const label = $('#vinyl-label');
   const demoColors = item.colors || ['#7590ff', '#ee6b99'];
+  document.documentElement.style.setProperty('--track-a', demoColors[0]);
+  document.documentElement.style.setProperty('--track-b', demoColors[1]);
   label.style.backgroundImage = `linear-gradient(140deg,${demoColors[0]},${demoColors[1]})`;
   label.querySelectorAll('.art-word,.art-label').forEach(n => n.hidden = false);
   $('.mobile-art').style.backgroundImage = `radial-gradient(circle,${demoColors[0]} 0 33%,#08090c 34% 100%)`;
@@ -435,6 +445,7 @@ async function loadSpotify() {
   $('#connection-label').textContent = 'Spotify connected';
   $('.status-dot').classList.remove('demo');
   $('#connection-copy').textContent = profile.product === 'premium' ? 'Playback controls are ready.' : 'Some playback controls need Premium.';
+  $('#connection-banner').hidden = true;
   renderPlaylists(state.playlists);
   renderRecent(state.recent);
   renderQueue(state.queue);
@@ -575,6 +586,7 @@ function openSettings() {
 function closeSettings() { $('#settings-modal').hidden = true; }
 $('#open-settings').addEventListener('click', openSettings);
 $('#account-button').addEventListener('click', openSettings);
+$('#connect-now-button').addEventListener('click', openSettings);
 $('[data-close-modal]').addEventListener('click', closeSettings);
 $('#demo-button').addEventListener('click', closeSettings);
 $('#settings-modal').addEventListener('click', event => { if (event.target === $('#settings-modal')) closeSettings(); });
@@ -653,9 +665,18 @@ async function init() {
     if (await handleSpotifyCallback()) await loadSpotify();
   } catch (error) {
     sessionStorage.removeItem(tokenKey);
-    toast(error.message);
+    toast(friendlyError(error), 'error');
     setTimeout(openSettings, 600);
   }
 }
+
+window.addEventListener('unhandledrejection', event => {
+  event.preventDefault();
+  console.error(event.reason);
+  toast(friendlyError(event.reason), 'error');
+});
+window.addEventListener('error', event => {
+  console.error(event.error || event.message);
+});
 
 init();
