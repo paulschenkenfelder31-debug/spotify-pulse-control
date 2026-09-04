@@ -1,0 +1,12 @@
+{
+  "name": "Pulse — Spotify Control",
+  "short_name": "Pulse",
+  "description": "A secure Spotify playback and playlist dashboard.",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#090a0d",
+  "theme_color": "#c7ff45",
+  "icons": [
+    { "src": "./icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
